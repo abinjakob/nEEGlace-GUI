@@ -4,6 +4,7 @@
 import time
 import os
 import signal
+import math
 # interface
 import tkinter 
 import customtkinter
@@ -208,8 +209,13 @@ def main():
     streamerFrameMain.grid(row=0, column=0, sticky='nsew')
     streamerFrameMain.grid_forget()
     
+    # impedanceFrame
+    impedanceFrame = customtkinter.CTkFrame(app)
+    impedanceFrame.grid(row=0, column=0, sticky='nsew')
+    impedanceFrame.grid_forget()
+    
     # configure grid layout for frames (add all frames here)
-    for frame in (mainFrame, troubleshootFrame1, troubleshootFrame2, troubleshootFrame3, testaudioframe, configFrameMain, streamerFrameMain, streamerFrameLoad):
+    for frame in (mainFrame, troubleshootFrame1, troubleshootFrame2, troubleshootFrame3, testaudioframe, configFrameMain, streamerFrameMain, streamerFrameLoad, impedanceFrame):
         frame.grid_rowconfigure(9, weight=1)
         for i in range(10):
             frame.grid_columnconfigure(i, weight=1)
@@ -229,10 +235,30 @@ def main():
     def on_troubleshoot():
         mainFrame.grid_forget()
         troubleshootFrame1.grid(sticky='nsew')
-    def on_config():
+        
+        
+        
+        
+        
+   
+# --------------->TEMP CODE<-----------------------   
+    # -- UNCOMMENT ORIGINAL -- 
+    # def on_config(): 
+    #     mainFrame.grid_forget()
+    #     configFrameMain.grid(sticky='nsew')
+    #     updateConfig()
+    
+    def on_config(): 
+        global electrode_items
         mainFrame.grid_forget()
-        configFrameMain.grid(sticky='nsew')
-        updateConfig()
+        impedanceFrame.grid(sticky='nsew')
+        electrode_items = drawElectrodes(left_positions) + drawElectrodes(right_positions)
+# --------------------------------------------------
+    
+    
+        
+        
+        
     def on_start():
         global inlet, streaminfo, sfreq, nchan
         
@@ -842,8 +868,6 @@ def main():
     
     # --- Streamer Main Frame UI ---
     
-    
-    
     # button functions
     def on_streameeg():
         plotEEG(inlet, eegchans, nbchans, tidx, soundThresh)
@@ -955,6 +979,82 @@ def main():
     strM_BTeegstream = customtkinter.CTkButton(streamerFrameMain, text= 'Plot EEG Data', fg_color='#ffffff', text_color='#000000', hover_color='#979797',
                                                command= on_streameeg)
     strM_BTeegstream.grid(row=9, column=9, sticky='se', padx= (10,40), pady= (0,40))
+    
+    
+
+    
+    # --- Impedance Frame UI ---
+
+    circle_radius = 22
+    # convert impedance value to colors
+    def convertImpval2Color(impedance):
+        impedance = max(0, min(impedance, 100)) 
+        red = int((impedance / 100) * 255)
+        green = int(((100 - impedance) / 100) * 255)
+        return f'#{red:02x}{green:02x}00' 
+    
+    # electrode layout
+    def drawElectrodes(positions):
+        item_pairs = []
+        for i, (x, y) in enumerate(positions):
+            circle_id = imp_canvas.create_oval(
+                x - circle_radius, y - circle_radius,
+                x + circle_radius, y + circle_radius,
+                fill='#404040', outline="#626262"
+            )
+            text_id = imp_canvas.create_text(
+                x, y, text="0.00", fill="black", font=("Arial", 9, "bold")
+            )
+            item_pairs.append((circle_id, text_id))
+        return item_pairs
+
+    # updates impedance for each electrode
+    def setImpColors(canvas, electrode_items, impedance_values):
+        for i, (circle_id, text_id) in enumerate(electrode_items):
+            color = convertImpval2Color(impedance_values[i])
+            canvas.itemconfig(circle_id, fill=color)
+            canvas.itemconfig(text_id, text=f"{impedance_values[i]:.2f}")
+    
+    def on_impquit():
+        impedanceFrame.grid_forget()
+        mainFrame.grid(sticky='nsew')
+    
+    def on_impstart():
+        # example values (10 for left, 8 for right)
+        example_impedances = [5, 12, 20, 28, 36, 45, 60, 72, 85, 95, 10, 20, 30, 40, 55, 65, 75, 90]
+        setImpColors(imp_canvas, electrode_items, example_impedances)
+    
+    # Title
+    imp_title = customtkinter.CTkLabel(impedanceFrame, text='Impedance', font=H2)
+    imp_title.grid(row=0, column=0, columnspan=10, sticky='w', padx=(40, 0), pady=(40, 0))
+    
+    # Buttons
+    imp_BTstartimp = customtkinter.CTkButton(impedanceFrame, text='Measure Impedance', fg_color='#ffffff',
+                                             text_color='#000000', hover_color='#979797', command=on_impstart)
+    imp_BTstartimp.grid(row=9, column=9, sticky='se', padx=(10, 40), pady=(0, 40))
+    
+    imp_BTquit = customtkinter.CTkButton(impedanceFrame, text='Back to Main Menu', fg_color='#5b5b5b',
+                                         text_color='#b6b6b6', hover_color='#4f4f4f', command=on_impquit)
+    imp_BTquit.grid(row=9, column=0, sticky='sw', padx=(40, 0), pady=(0, 40))
+    
+    # canvas for electrode layout
+    imp_canvas = customtkinter.CTkCanvas(impedanceFrame, width=500, height=350, bg="#2b2b2b", highlightthickness=0)
+    imp_canvas.grid(row=2, column=6, columnspan=10, pady=(20, 0))
+    
+    # electrode positions
+    left_positions = [(45, 74), (84, 37), (131, 41), (168, 81), (185, 130), (185, 186),
+                      (168, 235), (131, 275), (84, 279), (45, 242)]
+    right_positions = [(417, 74), (378, 37), (331, 41), (277, 130), (294, 235),
+                       (331, 275), (378, 279), (417, 242)]
+    
+
+    
+
+    
+    
+    
+    
+    
     
     # run app
     app.mainloop()
